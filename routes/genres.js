@@ -1,60 +1,74 @@
 const express = require("express");
 const router = express.Router();
 const Joi = require("joi");
+const mongoose = require("mongoose");
 
-const genres = [
-  { id: 1, name: "Action" },
-  { id: 2, name: "Comedy" },
-  { id: 3, name: "Drama" },
-  { id: 4, name: "Thriller" },
-];
-
-const schema = {
-  name: Joi.string().required().min(3).max(10),
-};
+const Genre = mongoose.model(
+  "Genre",
+  new mongoose.Schema({
+    name: {
+      type: String,
+      required: true,
+      minlength: 5,
+      maxlength: 50,
+    },
+  })
+);
 
 const validateGenre = (genre) => {
+  const schema = {
+    name: Joi.string().required().min(3).max(10),
+  };
   return Joi.validate(genre, schema);
 };
 
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
+  const genres = await Genre.find().sort("name");
   res.status(200).send(genres);
 });
 
-router.get("/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const genre = genres.find((g) => g.id === id);
+router.get("/:id", async (req, res) => {
+  const genre = await Genre.findById(req.params.id);
+
+  if (!genre) return res.status(404).send("Invalid ID");
+
+  res.status(200).send(genre);
+});
+
+router.post("/", async (req, res) => {
+  const { error } = validateGenre(req.body);
+  if (error) res.status(400).send(error.details[0].message);
+
+  let genre = new Genre({ name: req.body.name });
+  genre = await genre.save();
+  res.status(200).send(genre);
+});
+
+router.put("/:id", async (req, res) => {
+  const { error } = validateGenre(req.body);
+  if (error) res.status(400).send(error.details[0].message);
+
+  const genre = await Genre.findByIdAndUpdate(
+    req.params.id,
+    { name: req.body.name },
+    {
+      new: true,
+    }
+  );
+  if (!genre) res.status(404).send("Invalid ID");
+
+  res.status(200).send(genre);
+});
+
+router.delete("/:id", async (req, res) => {
+  const genre = await Genre.findByIdAndRemove(req.params.id);
   if (!genre) return res.status(404).send("Invalid ID");
   res.status(200).send(genre);
 });
 
-router.post("/", (req, res) => {
-  const genre = req.body;
-  const { error } = validateGenre(genre);
-  if (error) res.status(400).send(error.details[0].message);
-
-  genres.push({ id: genres.length + 1, name: genre.name });
-  res.status(200).send(genre);
-});
-
-router.put("/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const genre = genres.find((g) => g.id === id);
-  if (!genre) res.status(404).send("Invalid ID");
-  const { error } = validateGenre(req.body);
-  if (error) res.status(400).send(error.details[0].message);
-  genre.name = req.body.name;
-  res.status(200).send(genre);
-});
-
-router.delete("/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const genre = genres.find((g) => g.id === id);
-  if (!genres) return res.status(404).send("Invalid ID");
-
-  const index = genres.indexOf(genre);
-  genres.splice(index, 1);
-  res.status(200).send(genre);
+router.delete("/", async (req, res) => {
+  const genres = await Genre.remove();
+  res.status(200).send(genres);
 });
 
 module.exports = router;
