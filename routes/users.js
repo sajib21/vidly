@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const _ = require("lodash");
+const bcrypt = require("bcrypt");
 const { User, validate } = require("../models/user");
 
 // router.get("/", async (req, res) => {
@@ -24,36 +25,40 @@ router.post("/", async (req, res) => {
   if (user) return res.status(400).send("User already registered");
 
   user = new User(_.pick(req.body, ["name", "email", "password"]));
+
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(user.password, salt);
+
   user = await user.save();
 
-  res.status(200).send(_.pick(user, ["_id", "name", "email"]));
+  res.status(200).send(user);
 });
 
-router.put("/:id", async (req, res) => {
-  const { error } = validate(req.body);
-  if (error) res.status(400).send(error.details[0].message);
+// router.put("/:id", async (req, res) => {
+//   const { error } = validate(req.body);
+//   if (error) res.status(400).send(error.details[0].message);
 
-  const genre = await User.findByIdAndUpdate(
-    req.params.id,
-    { name: req.body.name },
-    {
-      new: true,
-    }
-  );
-  if (!genre) res.status(404).send("Invalid ID");
+//   const genre = await User.findByIdAndUpdate(
+//     req.params.id,
+//     { name: req.body.name },
+//     {
+//       new: true,
+//     }
+//   );
+//   if (!genre) res.status(404).send("Invalid ID");
 
-  res.status(200).send(genre);
-});
+//   res.status(200).send(genre);
+// });
 
-router.delete("/:id", async (req, res) => {
-  const genre = await User.findByIdAndRemove(req.params.id);
-  if (!genre) return res.status(404).send("Invalid ID");
-  res.status(200).send(genre);
-});
+// router.delete("/:id", async (req, res) => {
+//   const genre = await User.findByIdAndRemove(req.params.id);
+//   if (!genre) return res.status(404).send("Invalid ID");
+//   res.status(200).send(genre);
+// });
 
-router.delete("/", async (req, res) => {
-  const genres = await User.remove();
-  res.status(200).send(genres);
-});
+// router.delete("/", async (req, res) => {
+//   const genres = await User.remove();
+//   res.status(200).send(genres);
+// });
 
 module.exports = router;
