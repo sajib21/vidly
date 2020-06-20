@@ -5,18 +5,6 @@ const _ = require("lodash");
 const bcrypt = require("bcrypt");
 const { User, validate } = require("../models/user");
 
-// router.get("/", async (req, res) => {
-//   const users = await User.find().sort("name");
-//   res.status(200).send(users);
-// });
-
-// router.get("/:id", async (req, res) => {
-//   const genre = await User.findById(req.params.id);
-//   if (!genre) return res.status(404).send("Invalid ID");
-
-//   res.status(200).send(genre);
-// });
-
 router.post("/", async (req, res) => {
   const { error } = validate(req.body);
   if (error) res.status(400).send(error.details[0].message);
@@ -30,35 +18,9 @@ router.post("/", async (req, res) => {
   user.password = await bcrypt.hash(user.password, salt);
 
   user = await user.save();
+  const token = user.generateAuthToken();
 
-  res.status(200).send(user);
+  res.header("x-auth-token", token).status(200).send(user);
 });
-
-// router.put("/:id", async (req, res) => {
-//   const { error } = validate(req.body);
-//   if (error) res.status(400).send(error.details[0].message);
-
-//   const genre = await User.findByIdAndUpdate(
-//     req.params.id,
-//     { name: req.body.name },
-//     {
-//       new: true,
-//     }
-//   );
-//   if (!genre) res.status(404).send("Invalid ID");
-
-//   res.status(200).send(genre);
-// });
-
-// router.delete("/:id", async (req, res) => {
-//   const genre = await User.findByIdAndRemove(req.params.id);
-//   if (!genre) return res.status(404).send("Invalid ID");
-//   res.status(200).send(genre);
-// });
-
-// router.delete("/", async (req, res) => {
-//   const genres = await User.remove();
-//   res.status(200).send(genres);
-// });
 
 module.exports = router;
