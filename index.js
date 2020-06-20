@@ -3,6 +3,8 @@ const Joi = require("joi");
 Joi.objectId = require("joi-objectid")(Joi);
 const mongoose = require("mongoose");
 require("express-async-errors");
+const winston = require("winston");
+require("winston-mongodb");
 
 const genres = require("./routes/genres");
 const customers = require("./routes/customers");
@@ -13,6 +15,25 @@ const auth = require("./routes/auth");
 const error = require("./middleware/error");
 
 const app = express();
+
+process.on("uncaughtException", (ex) => {
+  console.log("UNCAUGHT EXCEPTION");
+  winston.errot(ex.message, ex);
+});
+process.on("unhandledRejection", (ex) => {
+  console.log("UNHANDLED REJECTION");
+  winston.errot(ex.message, ex);
+});
+
+winston.add(
+  new winston.transports.File({
+    filename: "logfile.log",
+    format: winston.format.combine(
+      winston.format.timestamp(),
+      winston.format.json()
+    ),
+  })
+);
 
 mongoose
   .connect("mongodb://localhost/vidly")
